@@ -239,6 +239,7 @@ add_subdirectory( plotjuggler_plugins/DataStreamUDP )
 add_subdirectory( plotjuggler_plugins/StatePublisherCSV )
 add_subdirectory( plotjuggler_plugins/ToolboxQuaternion )
 add_subdirectory( plotjuggler_plugins/ToolboxFFT )
+add_subdirectory( plotjuggler_plugins/ParserProtobuf )
 
 if( ZMQ_FOUND )
   add_subdirectory( plotjuggler_plugins/DataStreamZMQ )
