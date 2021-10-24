@@ -28,8 +28,9 @@
 *.out
 *.app
 
-/build*
-/*.user
+.vs/
+out/
+CMakeFiles/
 
 site/images/
 /PlotJugglerInstaller

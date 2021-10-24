@@ -2,6 +2,8 @@
 #define QUATERNION_TO_RPY_H
 
 #include "PlotJuggler/transform_function.h"
+#include <tuple>
+#include <array>
 
 class QuaternionToRollPitchYaw : public PJ::TransformFunction
 {
