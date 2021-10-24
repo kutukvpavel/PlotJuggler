@@ -4,9 +4,11 @@
 
 bool NlohmannParser::parseMessageImpl(double& timestamp)
 {
+  const std::string timestamp_name = "timestamp";
+
   if (_use_message_stamp)
   {
-    auto ts = _json.find("timestamp");
+    auto ts = _json.find(timestamp_name);
     if (ts != _json.end() && ts.value().is_number())
     {
       timestamp = ts.value().get<double>();
@@ -36,7 +38,16 @@ bool NlohmannParser::parseMessageImpl(double& timestamp)
         // iterate object and use keys as reference string
         for (const auto& element : value.items())
         {
-          flatten(fmt::format("{}/{}", prefix, element.key()), element.value());
+          bool has_key_member = false;
+          auto& members = element.value();
+          if (!_key.empty())
+          {
+            if (element.key() == _key)
+              continue;
+            has_key_member = _full_search_for_key ? members.contains(_key) :
+                                                    (members.cbegin().key() == _key);
+          }
+          flatten(fmt::format(has_key_member ? "{}/{}[{}]" : "{}/{}", prefix, element.key(), _key), members);
         }
         break;
       }
