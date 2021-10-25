@@ -88,7 +88,7 @@ if(APPLE AND EXISTS /usr/local/opt/qt5)
     set(CMAKE_MACOSX_RPATH 1)
 endif()
 
-list(APPEND CMAKE_PREFIX_PATH "H:\\Qt\\5.12.0\\msvc2017_64")
+list(APPEND CMAKE_PREFIX_PATH "H:\\Qt\\5.12.2\\5.12.2\\msvc2017_64")
 
 find_package(Qt5 REQUIRED COMPONENTS
     Core

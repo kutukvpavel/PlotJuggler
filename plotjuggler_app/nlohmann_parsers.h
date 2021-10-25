@@ -12,16 +12,18 @@
 
 using namespace PJ;
 
-typedef std::tuple<bool, bool, std::string> params_type;
+typedef std::tuple<bool, std::string> params_type;
 
 class NlohmannParser : public MessageParser
 {
 public:
   NlohmannParser(const std::string& topic_name, PlotDataMapRef& data, const params_type& params)
-    : MessageParser(topic_name, data), _use_message_stamp(std::get<0>(params)), 
-      _full_search_for_key(std::get<1>(params)), _key(std::get<2>(params))
+    : MessageParser(topic_name, data), _use_message_stamp(std::get<0>(params))
+    , _key(std::get<1>(params))
   {
-    //std::tie(_use_message_stamp, _full_search_for_key, _key) = params;
+    _interpret_as_pointer = _key.empty() ? false : (_key[0] == '/');
+    if (_interpret_as_pointer)
+      _pointer = nlohmann::json::json_pointer(_key);
   }
 
 protected:
@@ -29,8 +31,9 @@ protected:
 
   nlohmann::json _json;
   bool _use_message_stamp;
-  bool _full_search_for_key;
+  bool _interpret_as_pointer;
   std::string _key;
+  nlohmann::json::json_pointer _pointer;
 };
 
 class JSON_Parser : public NlohmannParser
@@ -86,16 +89,14 @@ public:
 class ParserParamsWidget : public QGroupBox
 {
 public:
-  ParserParamsWidget(QString checkbox_timestamp_text, QString checkbox_key_text, QString key_init_text) : QGroupBox()
+  ParserParamsWidget(QString checkbox_timestamp_text, QString placeholder_text, QString key_init_text) : QGroupBox()
   {
     QVBoxLayout* layout = new QVBoxLayout();
     _checkbox_use_timestamp = new QCheckBox(checkbox_timestamp_text);
     _textbox_key_member = new QLineEdit(key_init_text);
-    _textbox_key_member->setPlaceholderText("Optional: key member name");
-    _checkbox_key_full_search = new QCheckBox(checkbox_key_text);
+    _textbox_key_member->setPlaceholderText(placeholder_text);
     layout->addWidget(_checkbox_use_timestamp);
     layout->addWidget(_textbox_key_member);
-    layout->addWidget(_checkbox_key_full_search);
     setLayout(layout);
   }
   ~ParserParamsWidget() override
@@ -109,7 +110,6 @@ public:
     qDebug() << txt.c_str();
     params_type r = std::make_tuple(
       _checkbox_use_timestamp->isChecked(),
-      _checkbox_key_full_search->isChecked(),
       txt
     );
     return r;
@@ -117,7 +117,6 @@ public:
 
 protected:
   QCheckBox* _checkbox_use_timestamp;
-  QCheckBox* _checkbox_key_full_search; //unchecked = only look at first member (perf optimization)
   QLineEdit* _textbox_key_member;
 };
 
@@ -126,7 +125,8 @@ class NlohmannParserCreator : public MessageParserCreator
 public:
   NlohmannParserCreator()
   {
-    _params_widget = new ParserParamsWidget("Use field [timestamp] if available", "Full search for key member", "");
+    _params_widget = new ParserParamsWidget("Use field [timestamp] if available",
+                                            "Optional: key member name", "");
   }
 
   virtual QWidget* optionsWidget()

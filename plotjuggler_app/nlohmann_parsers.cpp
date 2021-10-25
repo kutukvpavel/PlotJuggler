@@ -15,7 +15,20 @@ bool NlohmannParser::parseMessageImpl(double& timestamp)
     }
   }
 
+  auto key_member = std::string();
+  if (_interpret_as_pointer)
+  {
+    try
+    {
+      key_member = _json.at(_pointer).begin().value().dump();
+    }
+    catch (const nlohmann::json::exception)
+    {
+    }
+  }
+
   std::function<void(const std::string&, const nlohmann::json&)> flatten;
+  int recursion_depth = 0;
 
   flatten = [&](const std::string& prefix, const nlohmann::json& value) {
     if (value.empty())
@@ -35,19 +48,24 @@ bool NlohmannParser::parseMessageImpl(double& timestamp)
       }
 
       case nlohmann::detail::value_t::object: {
-        // iterate object and use keys as reference string
+        // iterate object and use keys as reference string 
+        if (!_interpret_as_pointer && !_key.empty())
+        {
+          auto it = value.find(_key);
+          if (it != _json.end())
+            key_member = it.value().dump();
+        }
         for (const auto& element : value.items())
         {
-          bool has_key_member = false;
-          auto& members = element.value();
-          if (!_key.empty())
-          {
-            if (element.key() == _key)
-              continue;
-            has_key_member = _full_search_for_key ? members.contains(_key) :
-                                                    (members.cbegin().key() == _key);
-          }
-          flatten(fmt::format(has_key_member ? "{}/{}[{}]" : "{}/{}", prefix, element.key(), _key), members);
+          if (!_interpret_as_pointer && (element.key() == _key))
+            continue;
+          flatten(fmt::format(key_member.empty() ||
+                                      (recursion_depth++ > 0 && _interpret_as_pointer) ?
+                                  "{}/{}" :
+                                  "{}/{}[{}]",
+                              prefix, element.key(), key_member),
+                  element.value());
+          --recursion_depth;
         }
         break;
       }
