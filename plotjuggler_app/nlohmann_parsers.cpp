@@ -20,10 +20,19 @@ bool NlohmannParser::parseMessageImpl(double& timestamp)
   {
     try
     {
-      key_member = _json.at(_pointer).begin().value().dump();
+      auto val = _json.at(_pointer).begin().value();
+      key_member = val.dump();
+      if (val.is_number())
+      {
+        auto key_series = &(getSeries(_key));
+        key_series->pushBack({ timestamp, val.get<double>() });
+      }
+      auto fs = fmt::format("[{{\"op\": \"remove\", \"path\": \"{0}\"}}]", _key);
+      _json = _json.patch(nlohmann::json::parse(fs));
     }
-    catch (const nlohmann::json::exception)
+    catch (const nlohmann::json::exception& ex)
     {
+      qDebug() << ex.what();
     }
   }
 
@@ -58,14 +67,23 @@ bool NlohmannParser::parseMessageImpl(double& timestamp)
         for (const auto& element : value.items())
         {
           if (!_interpret_as_pointer && (element.key() == _key))
-            continue;
-          flatten(fmt::format(key_member.empty() ||
-                                      (recursion_depth++ > 0 && _interpret_as_pointer) ?
-                                  "{}/{}" :
-                                  "{}/{}[{}]",
-                              prefix, element.key(), key_member),
-                  element.value());
-          --recursion_depth;
+          {
+            if (element.value().is_number())
+            {
+              auto plot_data = &(getSeries(fmt::format("{}/{}", prefix, _key)));
+              plot_data->pushBack({ timestamp, element.value().get<double>() });
+            }
+          }
+          else
+          {
+            flatten(fmt::format(key_member.empty() ||
+                                        (recursion_depth++ > 0 && _interpret_as_pointer) ?
+                                    "{}/{}" :
+                                    "{}/{}[{}]",
+                                prefix, element.key(), key_member),
+                    element.value());
+            --recursion_depth;
+          }
         }
         break;
       }
