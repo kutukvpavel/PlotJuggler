@@ -58,7 +58,8 @@ bool NlohmannParser::parseMessageImpl(double& timestamp)
 
       case nlohmann::detail::value_t::object: {
         // iterate object and use keys as reference string 
-        if (!_interpret_as_pointer && !_key.empty())
+        bool key_specified = !_interpret_as_pointer && !_key.empty();
+        if (key_specified)
         {
           auto it = value.find(_key);
           if (it != _json.end())
@@ -66,7 +67,7 @@ bool NlohmannParser::parseMessageImpl(double& timestamp)
         }
         for (const auto& element : value.items())
         {
-          if (!_interpret_as_pointer && (element.key() == _key))
+          if (key_specified && (element.key() == _key))
           {
             if (element.value().is_number())
             {
