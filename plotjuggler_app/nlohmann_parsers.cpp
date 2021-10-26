@@ -76,12 +76,19 @@ bool NlohmannParser::parseMessageImpl(double& timestamp)
           }
           else
           {
-            flatten(fmt::format(key_member.empty() ||
-                                        (recursion_depth++ > 0 && _interpret_as_pointer) ?
-                                    "{}/{}" :
-                                    "{}/{}[{}]",
-                                prefix, element.key(), key_member),
-                    element.value());
+            try
+            {
+              flatten(fmt::format(key_member.empty() || (recursion_depth++ > 0 &&
+                                                         _interpret_as_pointer) ?
+                                      "{}/{}" :
+                                      "{}/{}[{}]",
+                                  prefix, element.key(), key_member),
+                      element.value());
+            }
+            catch (const std::exception& ex)
+            {
+              qDebug() << ex.what();
+            }
             --recursion_depth;
           }
         }
